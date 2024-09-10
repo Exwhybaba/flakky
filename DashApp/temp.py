@@ -8,7 +8,8 @@ import string
 from datetime import datetime
 
 # Load data
-path = r"C:\Users\HomePC\Documents\HTMLcSS\Nutrition\Data\ingredient.csv"
+path = r"Data/ingredient.csv"
+
 dfx = pd.read_csv(path)
 dfx.drop(columns="PRICE/KG", inplace=True)
 
