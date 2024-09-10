@@ -1,0 +1,256 @@
+/* General Body Styles */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: rgb(230, 224, 224);
+  margin: 0;
+  /* Ensure no default margin is applied */
+  padding: 0;
+  /* Ensure no default padding is applied */
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.container {
+  padding: 10px;
+  width: 100vw;
+}
+
+.requirement{
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.birdN{
+    width: 100%;
+    margin-top: 20px;
+}
+
+
+.all_box {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 20px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.sidebox{
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 40px;
+    height: max-content;
+    background-color: aqua;
+}
+
+/* Top Bar Styles */
+#topbar {
+  background-color: lightseagreen;
+  width: 100%;
+  height: 90px;
+  border: solid 1px white;
+  box-shadow: 5px 5px 5px 5px gray;
+  margin-bottom: 10px;
+  position: relative;
+  left: 5px;
+}
+
+/* Sidebar Styles */
+#sidebar {
+  grid-column: span 1 / span 1;
+  width: 100%;
+  background-color: white;
+
+}
+
+/* First Bar Styles */
+#firstbar {
+  width: 550px;
+  height: 475px;
+  margin-left: 5px;
+  margin-right: 25px;
+  background-color: white;
+  border: solid 1px white;
+  box-shadow: 5px 5px 5px 5px gray;
+  overflow: auto;
+}
+
+/* Second Bar Styles */
+#secondbar {
+  width: 410px;
+  height: 475px;
+  background-color: white;
+  border: solid 1px white;
+  box-shadow: 5px 5px 5px 5px gray;
+}
+
+.rectangle {
+  display: flex;
+  flex-direction: column;
+}
+
+.parent-Top {
+  width: 100%;
+  height: 100%;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 10px;
+}
+
+.feed-analysis {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffffff;
+  background: linear-gradient(90deg, #1c7c7d, #39b2a8);
+  padding: 10px 20px;
+  border-radius: 8px;
+  box-shadow: "0px 4px 15px rgba(0, 0, 0, 0.1)";
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-align: center;
+  display: inline-block;
+}
+
+.rectangle{
+    display: flex;
+}
+/* Flexbox Layout for Box Arrangement */
+/* .all_box {
+    display: flex;
+} */
+
+/* Container Styles */
+
+/* responsiveness */
+@media (min-width: 768px) {
+  .main {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+ 
+
+  .all_box {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .rectangle {
+    flex-direction: row;
+  }
+
+  #sidebar {
+    grid-column: span 2 / span 2;
+    height: 100%;
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 20px;
+  }
+
+  #topbar {
+    width: 100%;
+  }
+
+  .box_arrange {
+    grid-column: span 7 / span 7;
+    width: 100%;
+  }
+
+  .parent-Top {
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    gap: 50px;
+  }
+
+  .feed-analysis {
+    font-size: 36px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(90deg, #1c7c7d, #39b2a8);
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: "0px 4px 15px rgba(0, 0, 0, 0.1)";
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
+    display: inline-block;
+  }
+
+  .KPI {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    gap: 20px;
+    margin-right: 55px;
+    position: relative;
+  }
+
+  .card {
+    background-color: hsl(210, 17%, 98%);
+    border-radius: 8px;
+    padding: 8px;
+    width: 125px;
+    height: 75px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0px 4px 6px rgba(32, 115, 96, 0.4);
+  }
+
+  .card-3 {
+    gap: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card>p {
+    margin: 0 !important;
+  }
+
+  .chicken__id>img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    object-position: center;
+    position: absolute;
+    top: 10px;
+    right: -60px;
+  }
+
+  .dash-dropdown {
+    width: 100%;
+  }
+
+  .custom-dropdown {
+    height: 100% !important;
+    max-height: 300px !important;
+    overflow-y: auto;
+  }
+
+}

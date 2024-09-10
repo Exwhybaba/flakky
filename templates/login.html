@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %} {{ super() }} | Login{% endblock %}
+
+{% block content %}
+<div class="container theme-showcase" role="main" style="margin-top: 75px">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alert-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('login') }}" method="POST">
+        {{ form.hidden_tag() }}
+        {{ wtf.form_field(form.email) }}
+        {{ wtf.form_field(form.password) }}
+        <input type="submit" value="Login">
+    </form>
+</div>
+{% endblock %}

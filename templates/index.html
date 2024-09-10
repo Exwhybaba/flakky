@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container theme-mainpage" role="main" style="margin-top: 75px;">
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron">
+        {% if current_user.is_authenticated %}
+        <p font-size = 9px>Hello! {{ current_user.username}}</p>
+        {% endif %}
+        <h1>Welcome to Feedeyes</h1>
+        <p>Feedeyes is an innovative software solution designed for animal nutritionists and livestock farmers, aimed at formulating feed at the least cost possible. It enables users to create feed mixtures that meet the nutritional requirements of farm animals based on their species, age, and physiological condition. With Feedeyes, users can optimize feed formulations by utilizing available feed sources while keeping costs at a minimum.</p>
+        <p>The software offers powerful features, allowing users to formulate feeds that account for different growth phases, such as pre-starter, starter, and finisher, ensuring that animals receive the right nutrients throughout their lifecycle. Additionally, Feedeyes helps farmers plan feed requirements over specific periods and provides detailed calculations, including total cost per bag and key metrics like the metabolizable energy-to-crude protein ratio.</p>
+        <p>In tandem with our vision, Feedeyes aims to address challenges like ingredient adulteration and will offer real-time analysis of ingredient prices as premium features, ensuring that feed formulation is both cost-effective and nutritionally sound.</p>
+    </div>
+</div>
+{% endblock %}

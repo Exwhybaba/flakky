@@ -1,0 +1,66 @@
+/* Styling for the login container */
+.container.theme-showcase {
+    max-width: 400px;
+    margin: 75px auto; /* Center the container */
+    padding: 30px;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+/* Form Styling */
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Styling form fields */
+input[type="text"], 
+input[type="password"], 
+input[type="email"], 
+select, 
+textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+/* Submit button styling */
+input[type="submit"] {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+
+input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+/* Form label styling */
+label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Responsiveness */
+@media (max-width: 600px) {
+    .container.theme-showcase {
+        padding: 15px;
+    }
+}

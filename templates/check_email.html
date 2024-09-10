@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}{{ super() }} | Check Email{% endblock %}
+
+{% block content %}
+<div class="container theme-showcase" role="main" style="margin-top: 75px;">
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Check Your Email!</h4>
+        <p>A confirmation email has been sent to your email address. Please check your inbox and follow the instructions to activate your account.</p>
+        <a href="{{ url_for('login') }}" class="button">Back to Login</a>
+    </div>
+</div>
+{% endblock %}

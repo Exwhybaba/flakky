@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}{{ super() }} | Register{% endblock %}
+
+{% block content %}
+<div class="container theme-showcase" role="main" style="margin-top: 75px">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alert-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Display Form Errors -->
+    {% if form.errors %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for field, errors in form.errors.items() %}
+                    {% for error in errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- Registration Form -->
+    <form method="POST" action="{{ url_for('register') }}">
+        {{ form.hidden_tag() }}
+        {{ wtf.form_field(form.username, placeholder="Username") }}
+        {{ wtf.form_field(form.email) }}
+        {{ wtf.form_field(form.password) }}
+        {{ wtf.form_field(form.repeat_password, placeholder="Confirm Password") }}
+        <input type="submit" value="Register">
+    </form>    
+</div>
+{% endblock %}
