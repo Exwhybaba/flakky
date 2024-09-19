@@ -136,6 +136,29 @@ body {
 
 /* Container Styles */
 
+
+.logout-button {
+  background-color: seagreen;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  border-radius: 5px;
+  margin-top: 20px;
+}
+
+.logout-button:hover {
+  background-color: #ff3333;
+}
+
+.logout-container {
+  text-align: right;
+  margin: 20px;
+}
+
+
 /* responsiveness */
 @media (min-width: 768px) {
   .main {

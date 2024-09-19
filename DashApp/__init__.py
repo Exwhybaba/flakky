@@ -63,7 +63,14 @@ def create_dash_application(flask_app):
                 searchable= True,
                 clearable= True,
                 className='custom-dropdown'  
-            )
+            ),
+
+            html.Div(
+                    children=[
+                        html.A("Logout", href="/logout", className="logout-button")  
+                    ],
+                    className="logout-container"  
+                )
                         ], className="sidebox"),
 
          html.Div(children=[
