@@ -519,48 +519,48 @@ def create_dash_application(flask_app):
 
 
     @dash_app.callback(
-    Output("download_word", "data"),
-    [Input("download_word_button", "n_clicks")],
-    [State("Company_name", "value"),
-     State("feed_name", "value"),
-     State("feed_code", "children"),
-     State("report_table", "data"),
-     State("nutrient_table", "data")]
+        Output("download_word", "data"),
+        [Input("download_word_button", "n_clicks")],
+        [State("Company_name", "value"),
+         State("feed_name", "value"),
+         State("feed_code", "children"),
+         State("report_table", "data"),
+         State("nutrient_table", "data")]
     )
     def generate_word_document(n_clicks, company_name, feed_name, feed_code, report_data, nutrient_data):
-    if n_clicks > 0:
-        # Create a new Word document in memory
-        doc = Document()
+        if n_clicks > 0:
+            # Create a new Word document in memory
+            doc = Document()
+    
+            # Add company name, feed name, and feed code
+            doc.add_heading(f"{company_name} - Feed Analysis Report", level=1)
+            doc.add_paragraph(f"Feed Name: {feed_name}")
+            doc.add_paragraph(f"Feed Code: {feed_code}")
+            doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-        # Add company name, feed name, and feed code
-        doc.add_heading(f"{company_name} - Feed Analysis Report", level=1)
-        doc.add_paragraph(f"Feed Name: {feed_name}")
-        doc.add_paragraph(f"Feed Code: {feed_code}")
-        doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            # Add a table for report data
+            if report_data:
+                doc.add_heading("Report Table", level=2)
+                table = doc.add_table(rows=1, cols=len(report_data[0].keys()))
+                hdr_cells = table.rows[0].cells
+                for i, key in enumerate(report_data[0].keys()):
+                    hdr_cells[i].text = key
+                for row in report_data:
+                    row_cells = table.add_row().cells
+                    for i, key in enumerate(row.keys()):
+                        row_cells[i].text = str(row[key])
 
-        # Add a table for report data
-        if report_data:
-            doc.add_heading("Report Table", level=2)
-            table = doc.add_table(rows=1, cols=len(report_data[0].keys()))
-            hdr_cells = table.rows[0].cells
-            for i, key in enumerate(report_data[0].keys()):
-                hdr_cells[i].text = key
-            for row in report_data:
-                row_cells = table.add_row().cells
-                for i, key in enumerate(row.keys()):
-                    row_cells[i].text = str(row[key])
-
-        # Add a table for nutrient composition data
-        if nutrient_data:
-            doc.add_heading("Nutrient Composition", level=2)
-            table = doc.add_table(rows=1, cols=len(nutrient_data[0].keys()))
-            hdr_cells = table.rows[0].cells
-            for i, key in enumerate(nutrient_data[0].keys()):
-                hdr_cells[i].text = key
-            for row in nutrient_data:
-                row_cells = table.add_row().cells
-                for i, key in enumerate(row.keys()):
-                    row_cells[i].text = str(row[key])
+            # Add a table for nutrient composition data
+            if nutrient_data:
+                doc.add_heading("Nutrient Composition", level=2)
+                table = doc.add_table(rows=1, cols=len(nutrient_data[0].keys()))
+                hdr_cells = table.rows[0].cells
+                for i, key in enumerate(nutrient_data[0].keys()):
+                    hdr_cells[i].text = key
+                for row in nutrient_data:
+                    row_cells = table.add_row().cells
+                    for i, key in enumerate(row.keys()):
+                        row_cells[i].text = str(row[key])
 
         # Save to in-memory file
         file_stream = io.BytesIO()
