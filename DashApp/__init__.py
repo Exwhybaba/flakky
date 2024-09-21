@@ -4,6 +4,7 @@ import dash_table
 from dash.dependencies import Input, Output, State
 from dash import dcc, html
 #from temp import USER_PASS_MAPPING
+import io
 import random
 import string
 from datetime import datetime
@@ -517,19 +518,18 @@ def create_dash_application(flask_app):
     supabase: Client = create_client(supabase_url, supabase_key)
 
 
-    # Callback to generate and download the Word document
     @dash_app.callback(
-        Output("download_word", "data"),
-        [Input("download_word_button", "n_clicks")],
-        [State("Company_name", "value"),
-        State("feed_name", "value"),
-        State("feed_code", "children"),
-        State("report_table", "data"),
-        State("nutrient_table", "data")]
+    Output("download_word", "data"),
+    [Input("download_word_button", "n_clicks")],
+    [State("Company_name", "value"),
+     State("feed_name", "value"),
+     State("feed_code", "children"),
+     State("report_table", "data"),
+     State("nutrient_table", "data")]
     )
     def generate_word_document(n_clicks, company_name, feed_name, feed_code, report_data, nutrient_data):
         if n_clicks > 0:
-            # Create a new Word document
+            # Create a new Word document in memory
             doc = Document()
 
             # Add company name, feed name, and feed code
@@ -538,34 +538,36 @@ def create_dash_application(flask_app):
             doc.add_paragraph(f"Feed Code: {feed_code}")
             doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-            # Add a table for the report data
-            if report_data:
-                doc.add_heading("Report Table", level=2)
-                table = doc.add_table(rows=1, cols=len(report_data[0].keys()))
-                hdr_cells = table.rows[0].cells
-                for i, key in enumerate(report_data[0].keys()):
-                    hdr_cells[i].text = key
-                for row in report_data:
-                    row_cells = table.add_row().cells
-                    for i, key in enumerate(row.keys()):
-                        row_cells[i].text = str(row[key])
+        # Add a table for report data
+        if report_data:
+            doc.add_heading("Report Table", level=2)
+            table = doc.add_table(rows=1, cols=len(report_data[0].keys()))
+            hdr_cells = table.rows[0].cells
+            for i, key in enumerate(report_data[0].keys()):
+                hdr_cells[i].text = key
+            for row in report_data:
+                row_cells = table.add_row().cells
+                for i, key in enumerate(row.keys()):
+                    row_cells[i].text = str(row[key])
 
-            # Add a table for the nutrient composition data
-            if nutrient_data:
-                doc.add_heading("Nutrient Composition", level=2)
-                table = doc.add_table(rows=1, cols=len(nutrient_data[0].keys()))
-                hdr_cells = table.rows[0].cells
-                for i, key in enumerate(nutrient_data[0].keys()):
-                    hdr_cells[i].text = key
-                for row in nutrient_data:
-                    row_cells = table.add_row().cells
-                    for i, key in enumerate(row.keys()):
-                        row_cells[i].text = str(row[key])
+        # Add a table for nutrient composition data
+        if nutrient_data:
+            doc.add_heading("Nutrient Composition", level=2)
+            table = doc.add_table(rows=1, cols=len(nutrient_data[0].keys()))
+            hdr_cells = table.rows[0].cells
+            for i, key in enumerate(nutrient_data[0].keys()):
+                hdr_cells[i].text = key
+            for row in nutrient_data:
+                row_cells = table.add_row().cells
+                for i, key in enumerate(row.keys()):
+                    row_cells[i].text = str(row[key])
 
-            # Save the document to a temporary file
-            file_name = "Feed Analysis Report.docx"
-            doc.save(file_name)
+        # Save to in-memory file
+        file_stream = io.BytesIO()
+        doc.save(file_stream)
+        file_stream.seek(0)
 
+        return dcc.send_bytes(file_stream, filename="Feed_Analysis_Report.docx")
 
             # Save data to Supabase
             # Insert feed information into 'feeds' table
