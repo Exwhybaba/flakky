@@ -514,7 +514,7 @@ def create_dash_application(flask_app):
 
     # Initialize the Supabase client
     supabase_url = "https://cbtanxbugxiacrrrkasw.supabase.co"
-    supabase_key = "your_supabase_key"
+    supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNidGFueGJ1Z3hpYWNycnJrYXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUyODcxNjQsImV4cCI6MjA0MDg2MzE2NH0.deSfs_LKGQG2ctcWQ1ooKMqrbvBXRORfcUTaI7P9HPI"
     supabase: Client = create_client(supabase_url, supabase_key)
     
     @dash_app.callback(
