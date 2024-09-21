@@ -528,15 +528,15 @@ def create_dash_application(flask_app):
      State("nutrient_table", "data")]
     )
     def generate_word_document(n_clicks, company_name, feed_name, feed_code, report_data, nutrient_data):
-        if n_clicks > 0:
-            # Create a new Word document in memory
-            doc = Document()
+    if n_clicks > 0:
+        # Create a new Word document in memory
+        doc = Document()
 
-            # Add company name, feed name, and feed code
-            doc.add_heading(f"{company_name} - Feed Analysis Report", level=1)
-            doc.add_paragraph(f"Feed Name: {feed_name}")
-            doc.add_paragraph(f"Feed Code: {feed_code}")
-            doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        # Add company name, feed name, and feed code
+        doc.add_heading(f"{company_name} - Feed Analysis Report", level=1)
+        doc.add_paragraph(f"Feed Name: {feed_name}")
+        doc.add_paragraph(f"Feed Code: {feed_code}")
+        doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
         # Add a table for report data
         if report_data:
@@ -568,6 +568,8 @@ def create_dash_application(flask_app):
         file_stream.seek(0)
 
         return dcc.send_bytes(file_stream, filename="Feed_Analysis_Report.docx")
+
+    return dash.no_update
 
             # Save data to Supabase
             # Insert feed information into 'feeds' table
