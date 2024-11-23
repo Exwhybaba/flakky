@@ -16,10 +16,9 @@ import os
 from flask_login.utils import login_required
 
 
-
 def create_dash_application(flask_app):
     from DashApp.temp import dfx, df, bird_requirement_data, vitamins_minerals_data, columns
-
+    from dash import html, dcc 
 
     dash_app = dash.Dash(server = flask_app, name = "Feedeyes", url_base_pathname = "/dash/")
     
