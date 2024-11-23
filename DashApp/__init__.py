@@ -349,7 +349,7 @@ def create_dash_application(flask_app):
             reqDay = ''
         else:
             if stages == "Pre-starter":
-                feedNeeded = 0.2 * n_bird
+                feedNeeded = 0.5 * n_bird
                 reqDay = 'Day 0-7'
             elif stages == 'Starter':  
                 feedNeeded = 1 * n_bird
@@ -511,219 +511,152 @@ def create_dash_application(flask_app):
                 [html.P(html.B("COST/25kg")), html.P(html.B(f"{cost_25kg:.2f}"))])  # Update COST/25kg
 
 
-    # Initialize the Supabase client
-    supabase_url = "https://cbtanxbugxiacrrrkasw.supabase.co"
-    supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNidGFueGJ1Z3hpYWNycnJrYXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUyODcxNjQsImV4cCI6MjA0MDg2MzE2NH0.deSfs_LKGQG2ctcWQ1ooKMqrbvBXRORfcUTaI7P9HPI"
-    supabase: Client = create_client(supabase_url, supabase_key)
+import os
+import sqlite3
+from datetime import datetime
+import pandas as pd
+from dash import dcc, html
+from dash.dependencies import Input, Output, State
+from flask_login import login_required
+from docx import Document
 
+# Initialize SQLite3 database
+DB_PATH = os.path.join(os.path.expanduser("~"), "Documents", "feed_analysis.db")
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-    # Callback to generate and download the Word document
-    @dash_app.callback(
-        Output("download_word", "data"),
-        [Input("download_word_button", "n_clicks")],
-        [State("Company_name", "value"),
-        State("feed_name", "value"),
-        State("feed_code", "children"),
-        State("report_table", "data"),
-        State("nutrient_table", "data")]
-    )
-    def generate_word_document(n_clicks, company_name, feed_name, feed_code, report_data, nutrient_data):
-        if n_clicks > 0:
-            # Create a new Word document
-            doc = Document()
+# Create necessary tables if they don't exist
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS feeds (
+                feed_code TEXT PRIMARY KEY,
+                feed_name TEXT,
+                report_date TEXT
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ingredients (
+                ingredient_name TEXT PRIMARY KEY
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS feed_ingredients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                feed_code TEXT,
+                ingredient_name TEXT,
+                price_per_kg REAL,
+                quantity REAL,
+                quantity_price REAL,
+                amount REAL,
+                FOREIGN KEY (feed_code) REFERENCES feeds(feed_code),
+                FOREIGN KEY (ingredient_name) REFERENCES ingredients(ingredient_name)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS nutrient_composition (
+                feed_code TEXT PRIMARY KEY,
+                cp REAL, fat REAL, fibre REAL, cal REAL,
+                phos_total REAL, avail_phos REAL, me_poult REAL, me_swine REAL,
+                meth REAL, cystine REAL, meth_cyst REAL, lysine REAL,
+                tryptophan REAL, threonine REAL, vit_a_iu_gm REAL, vit_e_iu_gm REAL,
+                riboflavin REAL, panto_acid REAL, choline REAL, niacin REAL,
+                sodium REAL, potassium REAL, magnesium REAL, sulphur REAL,
+                manganese REAL, iron REAL, copper REAL, zinc REAL,
+                selenium REAL, iodine REAL
+            )
+        """)
 
-            # Add company name, feed name, and feed code
-            doc.add_heading(f"{company_name} - Feed Analysis Report", level=1)
-            doc.add_paragraph(f"Feed Name: {feed_name}")
-            doc.add_paragraph(f"Feed Code: {feed_code}")
-            doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+init_db()
 
-            # Add a table for the report data
-            if report_data:
-                doc.add_heading("Report Table", level=2)
-                table = doc.add_table(rows=1, cols=len(report_data[0].keys()))
-                hdr_cells = table.rows[0].cells
-                for i, key in enumerate(report_data[0].keys()):
-                    hdr_cells[i].text = key
-                for row in report_data:
-                    row_cells = table.add_row().cells
-                    for i, key in enumerate(row.keys()):
-                        row_cells[i].text = str(row[key])
+# Callback to generate and download the Word document
+@dash_app.callback(
+    Output("download_word", "data"),
+    [Input("download_word_button", "n_clicks")],
+    [State("Company_name", "value"),
+     State("feed_name", "value"),
+     State("feed_code", "children"),
+     State("report_table", "data"),
+     State("nutrient_table", "data")]
+)
+def generate_word_document(n_clicks, company_name, feed_name, feed_code, report_data, nutrient_data):
+    if n_clicks > 0:
+        # Create Word document
+        doc = Document()
+        doc.add_heading(f"{company_name} - Feed Analysis Report", level=1)
+        doc.add_paragraph(f"Feed Name: {feed_name}")
+        doc.add_paragraph(f"Feed Code: {feed_code}")
+        doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-            # Add a table for the nutrient composition data
-            if nutrient_data:
-                doc.add_heading("Nutrient Composition", level=2)
-                table = doc.add_table(rows=1, cols=len(nutrient_data[0].keys()))
-                hdr_cells = table.rows[0].cells
-                for i, key in enumerate(nutrient_data[0].keys()):
-                    hdr_cells[i].text = key
-                for row in nutrient_data:
-                    row_cells = table.add_row().cells
-                    for i, key in enumerate(row.keys()):
-                        row_cells[i].text = str(row[key])
+        # Add report data
+        if report_data:
+            doc.add_heading("Report Table", level=2)
+            table = doc.add_table(rows=1, cols=len(report_data[0].keys()))
+            hdr_cells = table.rows[0].cells
+            for i, key in enumerate(report_data[0].keys()):
+                hdr_cells[i].text = key
+            for row in report_data:
+                row_cells = table.add_row().cells
+                for i, key in enumerate(row.keys()):
+                    row_cells[i].text = str(row[key])
 
-            # Save the document to a temporary file
-            file_name = "Feed Analysis Report.docx"
-            doc.save(file_name)
+        # Add nutrient data
+        if nutrient_data:
+            doc.add_heading("Nutrient Composition", level=2)
+            table = doc.add_table(rows=1, cols=len(nutrient_data[0].keys()))
+            hdr_cells = table.rows[0].cells
+            for i, key in enumerate(nutrient_data[0].keys()):
+                hdr_cells[i].text = key
+            for row in nutrient_data:
+                row_cells = table.add_row().cells
+                for i, key in enumerate(row.keys()):
+                    row_cells[i].text = str(row[key])
 
+        # Save the document locally
+        file_name = "Feed Analysis Report.docx"
+        doc.save(file_name)
 
-            # Save data to Supabase
-            # Insert feed information into 'feeds' table
-            feed_response = supabase.table("feeds").insert({
-                "feed_code": feed_code,
-                "feed_name": feed_name,
-                "report_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }).execute()
+        # Save data in SQLite3
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
 
-            # Insert ingredients into 'feed_ingredients' table
+            # Insert feed details
+            cursor.execute("""
+                INSERT OR REPLACE INTO feeds (feed_code, feed_name, report_date)
+                VALUES (?, ?, ?)
+            """, (feed_code, feed_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
+            # Insert ingredients
             for row in report_data:
                 ingredient_name = row['INGREDIENT']
-                ingredient_price = row['PRICE/KG']
-                quantity = row['QUANTITY']
-                quantity_price = row['QUANTITY PRICE']
-                amount = row['AMOUNT']
+                cursor.execute("""
+                    INSERT OR IGNORE INTO ingredients (ingredient_name)
+                    VALUES (?)
+                """, (ingredient_name,))
+                cursor.execute("""
+                    INSERT INTO feed_ingredients (feed_code, ingredient_name, price_per_kg, quantity, quantity_price, amount)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (feed_code, ingredient_name, row['PRICE/KG'], row['QUANTITY'], row['QUANTITY PRICE'], row['AMOUNT']))
 
-                # Ensure the ingredient exists in the 'ingredients' table
-                ingredient_response = supabase.table("ingredients").upsert({
-                    "ingredient_name": ingredient_name
-                }, on_conflict="ingredient_name").execute()
-
-                # Get the ingredient_id
-                ingredient_id = ingredient_response.data[0]["ingredient_id"]
-
-                # Insert into feed_ingredients table
-                supabase.table("feed_ingredients").insert({
-                    "feed_code": feed_code,
-                    "ingredient_id": ingredient_id,
-                    "price_per_kg": ingredient_price,
-                    "quantity": quantity,
-                    "quantity_price": quantity_price,
-                    "amount": amount
-                }).execute()
-
-            # Convert nutrient_data list into a dictionary for easier lookup
+            # Insert nutrient composition
             nutrient_dict = {item['Nutrient']: item['Actual'] for item in nutrient_data}
+            cursor.execute("""
+                INSERT OR REPLACE INTO nutrient_composition (feed_code, cp, fat, fibre, cal, phos_total, avail_phos,
+                    me_poult, me_swine, meth, cystine, meth_cyst, lysine, tryptophan, threonine, vit_a_iu_gm, vit_e_iu_gm,
+                    riboflavin, panto_acid, choline, niacin, sodium, potassium, magnesium, sulphur, manganese, iron,
+                    copper, zinc, selenium, iodine)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (feed_code, nutrient_dict.get("CP", 0), nutrient_dict.get("FAT", 0), nutrient_dict.get("FIBRE", 0),
+                  nutrient_dict.get("CAL", 0), nutrient_dict.get("PHOS.TOTAL", 0), nutrient_dict.get("AVAIL PHOS", 0),
+                  nutrient_dict.get("ME/POULT", 0), nutrient_dict.get("ME/SWINE", 0), nutrient_dict.get("METH", 0),
+                  nutrient_dict.get("CYSTINE", 0), nutrient_dict.get("METH+CYST", 0), nutrient_dict.get("LYSINE", 0),
+                  nutrient_dict.get("TRYPTOPHAN", 0), nutrient_dict.get("THREONINE", 0), nutrient_dict.get("VIT A IU/GM", 0),
+                  nutrient_dict.get("VIT E IU/GM", 0), nutrient_dict.get("RIBOFLAVIN", 0), nutrient_dict.get("PANTO ACID", 0),
+                  nutrient_dict.get("CHOLINE", 0), nutrient_dict.get("NIACIN", 0), nutrient_dict.get("SODIUM", 0),
+                  nutrient_dict.get("POTASSIUM", 0), nutrient_dict.get("MAGNESIUM", 0), nutrient_dict.get("SULPHUR", 0),
+                  nutrient_dict.get("MANGANESE", 0), nutrient_dict.get("IRON", 0), nutrient_dict.get("COPPER", 0),
+                  nutrient_dict.get("ZINC", 0), nutrient_dict.get("SELENIUM", 0), nutrient_dict.get("IODINE", 0)))
 
-    # Insert nutrient composition into 'nutrient_composition' table
-            nutrient_composition = {
-                "feed_code": feed_code,
-                "cp": nutrient_dict.get("CP", 0),
-                "fat": nutrient_dict.get("FAT", 0),
-                "fibre": nutrient_dict.get("FIBRE", 0),
-                "cal": nutrient_dict.get("CAL", 0),
-                "phos_total": nutrient_dict.get("PHOS.TOTAL", 0),
-                "avail_phos": nutrient_dict.get("AVAIL PHOS", 0),
-                "me_poult": nutrient_dict.get("ME/POULT", 0),
-                "me_swine": nutrient_dict.get("ME/SWINE", 0),
-                "meth": nutrient_dict.get("METH", 0),
-                "cystine": nutrient_dict.get("CYSTINE", 0),
-                "meth_cyst": nutrient_dict.get("METH+CYST", 0),
-                "lysine": nutrient_dict.get("LYSINE", 0),
-                "tryptophan": nutrient_dict.get("TRYPTOPHAN", 0),
-                "threonine": nutrient_dict.get("THREONINE", 0),
-                "vit_a_iu_gm": nutrient_dict.get("VIT A IU/GM", 0),
-                "vit_e_iu_gm": nutrient_dict.get("VIT E IU/GM", 0),
-                "riboflavin": nutrient_dict.get("RIBOFLAVIN", 0),
-                "panto_acid": nutrient_dict.get("PANTO ACID", 0),
-                "choline": nutrient_dict.get("CHOLINE", 0),
-                "niacin": nutrient_dict.get("NIACIN", 0),
-                "sodium": nutrient_dict.get("SODIUM", 0),
-                "potassium": nutrient_dict.get("POTASSIUM", 0),
-                "magnesium": nutrient_dict.get("MAGNESIUM", 0),
-                "sulphur": nutrient_dict.get("SULPHUR", 0),
-                "manganese": nutrient_dict.get("MANGANESE", 0),
-                "iron": nutrient_dict.get("IRON", 0),
-                "copper": nutrient_dict.get("COPPER", 0),
-                "zinc": nutrient_dict.get("ZINC", 0),
-                "selenium": nutrient_dict.get("SELENIUM", 0),
-                "iodine": nutrient_dict.get("IODINE", 0),
-            }
+        return dcc.send_file(file_name)
 
-            supabase.table("nutrient_composition").insert(nutrient_composition).execute()
-
-
-            # excel_data dictionary
-            excel_data = {
-                'Feed Name': feed_name,
-                'Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                "ingredient_name": ingredient_name,
-                "price_per_kg": ingredient_price,
-                "quantity": quantity,
-                "quantity_price": quantity_price,
-                "amount": amount
-            }
-
-            # Convert to DataFrame
-            df = pd.DataFrame([nutrient_composition])
-
-            # Assign values from excel_data to the DataFrame
-            df['Feed Name'] = excel_data['Feed Name']
-            df['Date'] = excel_data['Date']
-            df["ingredient_name"] = excel_data["ingredient_name"]
-            df["price_per_kg"] = excel_data["price_per_kg"]
-            df["quantity"] = excel_data["quantity"]
-            df["quantity_price"] = excel_data["quantity_price"]
-            df["amount"] = excel_data["amount"]
-
-            # Rename columns in the correct order
-            df = df[[
-                'Date', "feed_code", 'Feed Name', "price_per_kg", 
-                "quantity", "amount", "cp", "fat", "fibre", "cal", 
-                "phos_total", "avail_phos", "me_poult", "me_swine", "meth", "cystine", 
-                "meth_cyst", "lysine", "tryptophan", "threonine", "vit_a_iu_gm", "vit_e_iu_gm", 
-                "riboflavin", "panto_acid", "choline", "niacin", "sodium", "potassium", 
-                "magnesium", "sulphur", "manganese", "iron", "copper", "zinc", "selenium", "iodine"
-            ]]
-
-            ingredients_df = pd.DataFrame(report_data, columns=["INGREDIENT", "PRICE/KG", "QUANTITY",  "AMOUNT"])
-            ingredients_df["FEED CODE"] = df['feed_code']
-            ingredients_df["DATE"] = df['Date']
-            ingredients_df["FEED NAME"] = df['Feed Name']
-
-            ingredients_df = ingredients_df[['DATE', 'FEED CODE', 'FEED NAME', "INGREDIENT", "PRICE/KG", "QUANTITY", "AMOUNT"]]
-            ingredients_df = ingredients_df[ingredients_df["INGREDIENT"] != "Total"]
-
-
-            # Create directory and file path
-            documents_path = os.path.join(os.path.expanduser("~"), "Documents")
-            feedeyes_directory = os.path.join(documents_path, "feedeyes")
-            os.makedirs(feedeyes_directory, exist_ok=True)
-            excel_file_path = os.path.join(feedeyes_directory, "local_feed_database.xlsx")
-
-            try:
-                if os.path.exists(excel_file_path):
-                    # Load existing sheets and append data
-                    with pd.ExcelWriter(excel_file_path, mode="a", if_sheet_exists="overlay", engine="openpyxl") as writer:
-                        # Check if 'Feed Data' sheet exists
-                        if 'Feed Data' in writer.sheets:
-                            df.to_excel(writer, sheet_name="Feed Data", index=False, header=False, startrow=writer.sheets['Feed Data'].max_row)
-                        else:
-                            df.to_excel(writer, sheet_name="Feed Data", index=False)
-                        
-                        # Always create or update 'Ingredients' sheet
-                        if 'Ingredients' in writer.sheets:
-                            ingredients_df.to_excel(writer, sheet_name="Ingredients", index=False, header=False, startrow=writer.sheets['Ingredients'].max_row)
-
-                        else:
-                            df.to_excel(writer, sheet_name="Ingredients", index=False)
-                else:
-                    # Create new file and save both sheets
-                    with pd.ExcelWriter(excel_file_path, engine="openpyxl") as writer:
-                        df.to_excel(writer, sheet_name="Feed Data", index=False)
-                        ingredients_df.to_excel(writer, sheet_name="Ingredients", index=False)
-
-            except PermissionError as e:
-                print(f"PermissionError: {e}")
-                # Handle permission error here
-
-            return dcc.send_file(file_name)
-
-        return dash.no_update
-    
-    for view_function in dash_app.server.view_functions:
-        if view_function.startswith(dash_app.config.url_base_pathname):
-            dash_app.server.view_functions[view_function] = login_required(
-                dash_app.server.view_functions[view_function]
-                )
-    
-    return dash_app
+    return dash.no_update
