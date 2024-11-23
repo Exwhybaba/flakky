@@ -581,90 +581,106 @@ init_db()
 )
 def generate_word_document(n_clicks, company_name, feed_name, feed_code, report_data, nutrient_data):
     if n_clicks > 0:
-        # Create Word document
+        # **Create Word Document**
         doc = Document()
         doc.add_heading(f"{company_name} - Feed Analysis Report", level=1)
         doc.add_paragraph(f"Feed Name: {feed_name}")
         doc.add_paragraph(f"Feed Code: {feed_code}")
         doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-        # Add report data
+        # **Add Report Data**
         if report_data:
             doc.add_heading("Report Table", level=2)
             table = doc.add_table(rows=1, cols=len(report_data[0].keys()))
             hdr_cells = table.rows[0].cells
             for i, key in enumerate(report_data[0].keys()):
                 hdr_cells[i].text = key
+
             for row in report_data:
                 row_cells = table.add_row().cells
                 for i, key in enumerate(row.keys()):
                     row_cells[i].text = str(row[key])
 
-        # Add nutrient data
+        # **Add Nutrient Data**
         if nutrient_data:
             doc.add_heading("Nutrient Composition", level=2)
             table = doc.add_table(rows=1, cols=len(nutrient_data[0].keys()))
             hdr_cells = table.rows[0].cells
             for i, key in enumerate(nutrient_data[0].keys()):
                 hdr_cells[i].text = key
+
             for row in nutrient_data:
                 row_cells = table.add_row().cells
                 for i, key in enumerate(row.keys()):
                     row_cells[i].text = str(row[key])
 
-        # Save the document locally
+        # **Save the Document**
         file_name = "Feed Analysis Report.docx"
         doc.save(file_name)
 
-        # Save data in SQLite3
+        # **Insert Data into SQLite Database**
         with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
 
-            # Insert feed details
+            # Insert Feed Details
             cursor.execute("""
                 INSERT OR REPLACE INTO feeds (feed_code, feed_name, report_date)
                 VALUES (?, ?, ?)
             """, (feed_code, feed_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
-            # Insert ingredients
-            for row in report_data:
-                ingredient_name = row['INGREDIENT']
-                cursor.execute("""
-                    INSERT OR IGNORE INTO ingredients (ingredient_name)
-                    VALUES (?)
-                """, (ingredient_name,))
-                cursor.execute("""
-                    INSERT INTO feed_ingredients (feed_code, ingredient_name, price_per_kg, quantity, quantity_price, amount)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (feed_code, ingredient_name, row['PRICE/KG'], row['QUANTITY'], row['QUANTITY PRICE'], row['AMOUNT']))
+            # Insert Ingredients Data
+            if report_data:
+                for row in report_data:
+                    ingredient_name = row['INGREDIENT']
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO ingredients (ingredient_name)
+                        VALUES (?)
+                    """, (ingredient_name,))
+                    cursor.execute("""
+                        INSERT INTO feed_ingredients (feed_code, ingredient_name, price_per_kg, quantity, quantity_price, amount)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        feed_code, ingredient_name, row['PRICE/KG'], row['QUANTITY'], 
+                        row['QUANTITY PRICE'], row['AMOUNT']
+                    ))
 
-            # Insert nutrient composition
-            nutrient_dict = {item['Nutrient']: item['Actual'] for item in nutrient_data}
-            cursor.execute("""
-                INSERT OR REPLACE INTO nutrient_composition (feed_code, cp, fat, fibre, cal, phos_total, avail_phos,
-                    me_poult, me_swine, meth, cystine, meth_cyst, lysine, tryptophan, threonine, vit_a_iu_gm, vit_e_iu_gm,
-                    riboflavin, panto_acid, choline, niacin, sodium, potassium, magnesium, sulphur, manganese, iron,
-                    copper, zinc, selenium, iodine)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (feed_code, nutrient_dict.get("CP", 0), nutrient_dict.get("FAT", 0), nutrient_dict.get("FIBRE", 0),
-                  nutrient_dict.get("CAL", 0), nutrient_dict.get("PHOS.TOTAL", 0), nutrient_dict.get("AVAIL PHOS", 0),
-                  nutrient_dict.get("ME/POULT", 0), nutrient_dict.get("ME/SWINE", 0), nutrient_dict.get("METH", 0),
-                  nutrient_dict.get("CYSTINE", 0), nutrient_dict.get("METH+CYST", 0), nutrient_dict.get("LYSINE", 0),
-                  nutrient_dict.get("TRYPTOPHAN", 0), nutrient_dict.get("THREONINE", 0), nutrient_dict.get("VIT A IU/GM", 0),
-                  nutrient_dict.get("VIT E IU/GM", 0), nutrient_dict.get("RIBOFLAVIN", 0), nutrient_dict.get("PANTO ACID", 0),
-                  nutrient_dict.get("CHOLINE", 0), nutrient_dict.get("NIACIN", 0), nutrient_dict.get("SODIUM", 0),
-                  nutrient_dict.get("POTASSIUM", 0), nutrient_dict.get("MAGNESIUM", 0), nutrient_dict.get("SULPHUR", 0),
-                  nutrient_dict.get("MANGANESE", 0), nutrient_dict.get("IRON", 0), nutrient_dict.get("COPPER", 0),
-                  nutrient_dict.get("ZINC", 0), nutrient_dict.get("SELENIUM", 0), nutrient_dict.get("IODINE", 0)))
+            # Insert Nutrient Composition
+            if nutrient_data:
+                nutrient_dict = {item['Nutrient']: item['Actual'] for item in nutrient_data}
+                cursor.execute("""
+                    INSERT OR REPLACE INTO nutrient_composition (
+                        feed_code, cp, fat, fibre, cal, phos_total, avail_phos, me_poult, me_swine, meth, cystine,
+                        meth_cyst, lysine, tryptophan, threonine, vit_a_iu_gm, vit_e_iu_gm, riboflavin, panto_acid,
+                        choline, niacin, sodium, potassium, magnesium, sulphur, manganese, iron, copper, zinc,
+                        selenium, iodine
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    feed_code, nutrient_dict.get("CP", 0), nutrient_dict.get("FAT", 0), nutrient_dict.get("FIBRE", 0),
+                    nutrient_dict.get("CAL", 0), nutrient_dict.get("PHOS.TOTAL", 0), nutrient_dict.get("AVAIL PHOS", 0),
+                    nutrient_dict.get("ME/POULT", 0), nutrient_dict.get("ME/SWINE", 0), nutrient_dict.get("METH", 0),
+                    nutrient_dict.get("CYSTINE", 0), nutrient_dict.get("METH+CYST", 0), nutrient_dict.get("LYSINE", 0),
+                    nutrient_dict.get("TRYPTOPHAN", 0), nutrient_dict.get("THREONINE", 0), nutrient_dict.get("VIT A IU/GM", 0),
+                    nutrient_dict.get("VIT E IU/GM", 0), nutrient_dict.get("RIBOFLAVIN", 0), nutrient_dict.get("PANTO ACID", 0),
+                    nutrient_dict.get("CHOLINE", 0), nutrient_dict.get("NIACIN", 0), nutrient_dict.get("SODIUM", 0),
+                    nutrient_dict.get("POTASSIUM", 0), nutrient_dict.get("MAGNESIUM", 0), nutrient_dict.get("SULPHUR", 0),
+                    nutrient_dict.get("MANGANESE", 0), nutrient_dict.get("IRON", 0), nutrient_dict.get("COPPER", 0),
+                    nutrient_dict.get("ZINC", 0), nutrient_dict.get("SELENIUM", 0), nutrient_dict.get("IODINE", 0)
+                ))
 
+        # **Send the Word Document for Download**
         return dcc.send_file(file_name)
 
+    # **Return No Update if No Clicks**
     return dash.no_update
-    
+
+
+# **Secure Dash Views with Login**
 for view_function in dash_app.server.view_functions:
-        if view_function.startswith(dash_app.config.url_base_pathname):
-            dash_app.server.view_functions[view_function] = login_required(
-                dash_app.server.view_functions[view_function]
-                )
-    
+    if view_function.startswith(dash_app.config.url_base_pathname):
+        dash_app.server.view_functions[view_function] = login_required(
+            dash_app.server.view_functions[view_function]
+        )
+
+# **Return the Dash App**
 return dash_app
