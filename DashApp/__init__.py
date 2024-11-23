@@ -660,3 +660,11 @@ def generate_word_document(n_clicks, company_name, feed_name, feed_code, report_
         return dcc.send_file(file_name)
 
     return dash.no_update
+    
+for view_function in dash_app.server.view_functions:
+        if view_function.startswith(dash_app.config.url_base_pathname):
+            dash_app.server.view_functions[view_function] = login_required(
+                dash_app.server.view_functions[view_function]
+                )
+    
+return dash_app
