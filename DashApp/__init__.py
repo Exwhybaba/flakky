@@ -1,25 +1,21 @@
-import pandas as pd
-import dash
-from dash import Dash, html, dcc  # Correct import for Dash components
-import dash
-import dash_table
-from dash.dependencies import Input, Output, State
-from dash import dcc, html
-#from temp import USER_PASS_MAPPING
-import random
-import string
-from datetime import datetime
-from docx import Document
-from docx.shared import Pt
-from supabase import create_client, Client
-import os
-from flask_login.utils import login_required
-
 
 def create_dash_application(flask_app):
     from DashApp.temp import dfx, df, bird_requirement_data, vitamins_minerals_data, columns
-    from dash import html, dcc 
-
+    import pandas as pd
+    import dash
+    from dash import Dash, html, dcc  # Correct import for Dash components
+    import dash
+    import dash_table
+    from dash.dependencies import Input, Output, State
+    #from temp import USER_PASS_MAPPING
+    import random
+    import string
+    from datetime import datetime
+    from docx import Document
+    from docx.shared import Pt
+    from supabase import create_client, Client
+    import os
+    from flask_login.utils import login_required
     dash_app = dash.Dash(server = flask_app, name = "Feedeyes", url_base_pathname = "/dash/")
     
     dash_app.layout = html.Div(children=[ 
