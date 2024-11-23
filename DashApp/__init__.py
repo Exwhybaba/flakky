@@ -1,5 +1,7 @@
 import pandas as pd
 import dash
+from dash import Dash, html, dcc  # Correct import for Dash components
+import dash
 import dash_table
 from dash.dependencies import Input, Output, State
 from dash import dcc, html
@@ -12,9 +14,6 @@ from docx.shared import Pt
 from supabase import create_client, Client
 import os
 from flask_login.utils import login_required
-
-
-
 
 
 
