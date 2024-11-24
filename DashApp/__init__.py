@@ -654,8 +654,8 @@ def create_dash_application(flask_app):
                                 );
                                 """)
             
-                     # Insert feed data
-                     cursor.execute("""
+                    # Insert feed data
+                    cursor.execute("""
                                 INSERT OR REPLACE INTO feeds (feed_code, feed_name, report_date)
                                 VALUES (?, ?, ?)
                             """, (feed_code, feed_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
