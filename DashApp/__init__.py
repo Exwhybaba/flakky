@@ -12,9 +12,10 @@ from docx.shared import Pt
 from supabase import create_client, Client
 import os
 from flask_login.utils import login_required
-import sqlite3
 
-            
+
+
+
 
 
 def create_dash_application(flask_app):
@@ -510,55 +511,10 @@ def create_dash_application(flask_app):
                 [html.P(html.B("COST/25kg")), html.P(html.B(f"{cost_25kg:.2f}"))])  # Update COST/25kg
 
 
-    # Define the path relative to the project directory
-    DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "feed_analysis.db")
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    
-    # Create necessary tables if they don't exist
-    def init_db():
-        with sqlite3.connect(DB_PATH) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS feeds (
-                    feed_code TEXT PRIMARY KEY,
-                    feed_name TEXT,
-                    report_date TEXT
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS ingredients (
-                    ingredient_name TEXT PRIMARY KEY
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS feed_ingredients (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    feed_code TEXT,
-                    ingredient_name TEXT,
-                    price_per_kg REAL,
-                    quantity REAL,
-                    quantity_price REAL,
-                    amount REAL,
-                    FOREIGN KEY (feed_code) REFERENCES feeds(feed_code),
-                    FOREIGN KEY (ingredient_name) REFERENCES ingredients(ingredient_name)
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS nutrient_composition (
-                    feed_code TEXT PRIMARY KEY,
-                    cp REAL, fat REAL, fibre REAL, cal REAL,
-                    phos_total REAL, avail_phos REAL, me_poult REAL, me_swine REAL,
-                    meth REAL, cystine REAL, meth_cyst REAL, lysine REAL,
-                    tryptophan REAL, threonine REAL, vit_a_iu_gm REAL, vit_e_iu_gm REAL,
-                    riboflavin REAL, panto_acid REAL, choline REAL, niacin REAL,
-                    sodium REAL, potassium REAL, magnesium REAL, sulphur REAL,
-                    manganese REAL, iron REAL, copper REAL, zinc REAL,
-                    selenium REAL, iodine REAL
-                )
-            """)
-    
-        init_db()
-
+    # Initialize the Supabase client
+    supabase_url = "https://cbtanxbugxiacrrrkasw.supabase.co"
+    supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNidGFueGJ1Z3hpYWNycnJrYXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUyODcxNjQsImV4cCI6MjA0MDg2MzE2NH0.deSfs_LKGQG2ctcWQ1ooKMqrbvBXRORfcUTaI7P9HPI"
+    supabase: Client = create_client(supabase_url, supabase_key)
 
 
     # Callback to generate and download the Word document
@@ -571,7 +527,6 @@ def create_dash_application(flask_app):
         State("report_table", "data"),
         State("nutrient_table", "data")]
     )
-            
     def generate_word_document(n_clicks, company_name, feed_name, feed_code, report_data, nutrient_data):
         if n_clicks > 0:
             # Create a new Word document
@@ -611,117 +566,80 @@ def create_dash_application(flask_app):
             file_name = "Feed Analysis Report.docx"
             doc.save(file_name)
 
-            try:
-                # Open a connection to the database
-                with sqlite3.connect(DB_PATH) as conn:
-                    cursor = conn.cursor()
-                        
-                    # Create tables if they don't exist
-                    cursor.execute("""
-                                CREATE TABLE IF NOT EXISTS feeds (
-                                    feed_code TEXT PRIMARY KEY,
-                                    feed_name TEXT,
-                                    report_date TEXT
-                                );
-                            """)
-                    cursor.execute("""
-                                CREATE TABLE IF NOT EXISTS ingredients (
-                                    ingredient_name TEXT PRIMARY KEY
-                                );
-                            """)
-                    cursor.execute("""
-                                CREATE TABLE IF NOT EXISTS feed_ingredients (
-                                    feed_code TEXT,
-                                    ingredient_name TEXT,
-                                    price_per_kg REAL,
-                                    quantity REAL,
-                                    quantity_price REAL,
-                                    amount REAL,
-                                    FOREIGN KEY(feed_code) REFERENCES feeds(feed_code),
-                                    FOREIGN KEY(ingredient_name) REFERENCES ingredients(ingredient_name)
-                                );
-                            """)
-                    cursor.execute("""
-                                CREATE TABLE IF NOT EXISTS nutrient_composition (
-                                    feed_code TEXT PRIMARY KEY,
-                                    cp REAL, fat REAL, fibre REAL, cal REAL, phos_total REAL,
-                                    avail_phos REAL, me_poult REAL, me_swine REAL, meth REAL, cystine REAL,
-                                    meth_cyst REAL, lysine REAL, tryptophan REAL, threonine REAL,
-                                    vit_a_iu_gm REAL, vit_e_iu_gm REAL, riboflavin REAL, panto_acid REAL,
-                                    choline REAL, niacin REAL, sodium REAL, potassium REAL, magnesium REAL,
-                                    sulphur REAL, manganese REAL, iron REAL, copper REAL, zinc REAL,
-                                    selenium REAL, iodine REAL
-                                );
-                                """)
-            
-                    # Insert feed data
-                    cursor.execute("""
-                                INSERT OR REPLACE INTO feeds (feed_code, feed_name, report_date)
-                                VALUES (?, ?, ?)
-                            """, (feed_code, feed_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-            
-                    # Insert report data
-                    if report_data:
-                        for row in report_data:
-                            ingredient_name = row.get("INGREDIENT")
-                            if not ingredient_name:
-                                print("Warning: Missing ingredient name in row:", row)
-                                continue
 
-                            price_per_kg = row.get("PRICE/KG", 0)
-                            quantity = row.get("QUANTITY", 0)
-                            quantity_price = row.get("QUANTITY PRICE", 0)
-                            amount = row.get("AMOUNT", 0)
+            # Save data to Supabase
+            # Insert feed information into 'feeds' table
+            feed_response = supabase.table("feeds").insert({
+                "feed_code": feed_code,
+                "feed_name": feed_name,
+                "report_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }).execute()
 
-                            # Ensure the ingredient exists
-                            cursor.execute("""
-                            INSERT OR IGNORE INTO ingredients (ingredient_name)
-                            VALUES (?)
-                             """, (ingredient_name,))
+            # Insert ingredients into 'feed_ingredients' table
+            for row in report_data:
+                ingredient_name = row['INGREDIENT']
+                ingredient_price = row['PRICE/KG']
+                quantity = row['QUANTITY']
+                quantity_price = row['QUANTITY PRICE']
+                amount = row['AMOUNT']
 
-                            # Insert into feed_ingredients table
-                            cursor.execute("""
-                            INSERT INTO feed_ingredients (feed_code, ingredient_name, price_per_kg, quantity, quantity_price, amount)
-                            VALUES (?, ?, ?, ?, ?, ?)
-                             """, (feed_code, ingredient_name, price_per_kg, quantity, quantity_price, amount))
+                # Ensure the ingredient exists in the 'ingredients' table
+                ingredient_response = supabase.table("ingredients").upsert({
+                    "ingredient_name": ingredient_name
+                }, on_conflict="ingredient_name").execute()
 
-                    # Insert nutrient composition data
-                    if nutrient_data:
-                        nutrient_dict = {item["Nutrient"]: item["Actual"] for item in nutrient_data}
-                        cursor.execute("""
-                                           INSERT OR REPLACE INTO nutrient_composition (
-                                        feed_code, cp, fat, fibre, cal, phos_total, avail_phos, me_poult, me_swine, meth, cystine,
-                                        meth_cyst, lysine, tryptophan, threonine, vit_a_iu_gm, vit_e_iu_gm, riboflavin, panto_acid,
-                                        choline, niacin, sodium, potassium, magnesium, sulphur, manganese, iron, copper, zinc,
-                                        selenium, iodine
-                                    )
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """, (
-                                    feed_code, nutrient_dict.get("CP", 0), nutrient_dict.get("FAT", 0), nutrient_dict.get("FIBRE", 0),
-                                    nutrient_dict.get("CAL", 0), nutrient_dict.get("PHOS.TOTAL", 0), nutrient_dict.get("AVAIL PHOS", 0),
-                                    nutrient_dict.get("ME/POULT", 0), nutrient_dict.get("ME/SWINE", 0), nutrient_dict.get("METH", 0),
-                                    nutrient_dict.get("CYSTINE", 0), nutrient_dict.get("METH+CYST", 0), nutrient_dict.get("LYSINE", 0),
-                                    nutrient_dict.get("TRYPTOPHAN", 0), nutrient_dict.get("THREONINE", 0), nutrient_dict.get("VIT A IU/GM", 0),
-                                    nutrient_dict.get("VIT E IU/GM", 0), nutrient_dict.get("RIBOFLAVIN", 0), nutrient_dict.get("PANTO ACID", 0),
-                                    nutrient_dict.get("CHOLINE", 0), nutrient_dict.get("NIACIN", 0), nutrient_dict.get("SODIUM", 0),
-                                    nutrient_dict.get("POTASSIUM", 0), nutrient_dict.get("MAGNESIUM", 0), nutrient_dict.get("SULPHUR", 0),
-                                    nutrient_dict.get("MANGANESE", 0), nutrient_dict.get("IRON", 0), nutrient_dict.get("COPPER", 0),
-                                    nutrient_dict.get("ZINC", 0), nutrient_dict.get("SELENIUM", 0), nutrient_dict.get("IODINE", 0)
-                                ))
+                # Get the ingredient_id
+                ingredient_id = ingredient_response.data[0]["ingredient_id"]
 
-                    # Commit the transaction
-                    conn.commit()
+                # Insert into feed_ingredients table
+                supabase.table("feed_ingredients").insert({
+                    "feed_code": feed_code,
+                    "ingredient_id": ingredient_id,
+                    "price_per_kg": ingredient_price,
+                    "quantity": quantity,
+                    "quantity_price": quantity_price,
+                    "amount": amount
+                }).execute()
 
-            except sqlite3.Error as e:
-                print(f"SQLite error occurred: {e}")
-                if conn:
-                    conn.rollback()
-            except Exception as e:
-                print(f"An unexpected error occurred: {e}")
-            finally:
-                if conn:
-                    conn.close()
+            # Convert nutrient_data list into a dictionary for easier lookup
+            nutrient_dict = {item['Nutrient']: item['Actual'] for item in nutrient_data}
 
+    # Insert nutrient composition into 'nutrient_composition' table
+            nutrient_composition = {
+                "feed_code": feed_code,
+                "cp": nutrient_dict.get("CP", 0),
+                "fat": nutrient_dict.get("FAT", 0),
+                "fibre": nutrient_dict.get("FIBRE", 0),
+                "cal": nutrient_dict.get("CAL", 0),
+                "phos_total": nutrient_dict.get("PHOS.TOTAL", 0),
+                "avail_phos": nutrient_dict.get("AVAIL PHOS", 0),
+                "me_poult": nutrient_dict.get("ME/POULT", 0),
+                "me_swine": nutrient_dict.get("ME/SWINE", 0),
+                "meth": nutrient_dict.get("METH", 0),
+                "cystine": nutrient_dict.get("CYSTINE", 0),
+                "meth_cyst": nutrient_dict.get("METH+CYST", 0),
+                "lysine": nutrient_dict.get("LYSINE", 0),
+                "tryptophan": nutrient_dict.get("TRYPTOPHAN", 0),
+                "threonine": nutrient_dict.get("THREONINE", 0),
+                "vit_a_iu_gm": nutrient_dict.get("VIT A IU/GM", 0),
+                "vit_e_iu_gm": nutrient_dict.get("VIT E IU/GM", 0),
+                "riboflavin": nutrient_dict.get("RIBOFLAVIN", 0),
+                "panto_acid": nutrient_dict.get("PANTO ACID", 0),
+                "choline": nutrient_dict.get("CHOLINE", 0),
+                "niacin": nutrient_dict.get("NIACIN", 0),
+                "sodium": nutrient_dict.get("SODIUM", 0),
+                "potassium": nutrient_dict.get("POTASSIUM", 0),
+                "magnesium": nutrient_dict.get("MAGNESIUM", 0),
+                "sulphur": nutrient_dict.get("SULPHUR", 0),
+                "manganese": nutrient_dict.get("MANGANESE", 0),
+                "iron": nutrient_dict.get("IRON", 0),
+                "copper": nutrient_dict.get("COPPER", 0),
+                "zinc": nutrient_dict.get("ZINC", 0),
+                "selenium": nutrient_dict.get("SELENIUM", 0),
+                "iodine": nutrient_dict.get("IODINE", 0),
+            }
+
+            supabase.table("nutrient_composition").insert(nutrient_composition).execute()
 
 
             # excel_data dictionary
