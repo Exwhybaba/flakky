@@ -610,10 +610,6 @@ def create_dash_application(flask_app):
             file_name = "Feed Analysis Report.docx"
             doc.save(file_name)
 
-
-            # Database path
-            DB_PATH = DB_PATH
-            
             try:
                 # Open a connection to the database
                 with sqlite3.connect(DB_PATH) as conn:
