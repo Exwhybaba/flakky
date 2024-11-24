@@ -572,124 +572,154 @@ def create_dash_application(flask_app):
         State("nutrient_table", "data")]
     )
     def generate_word_document(n_clicks, company_name, feed_name, feed_code, report_data, nutrient_data):
-        if n_clicks > 0:
-            # Create a new Word document
-            doc = Document()
+    if n_clicks > 0:
+        # Create a new Word document
+        doc = Document()
 
-            # Add company name, feed name, and feed code
-            doc.add_heading(f"{company_name} - Feed Analysis Report", level=1)
-            doc.add_paragraph(f"Feed Name: {feed_name}")
-            doc.add_paragraph(f"Feed Code: {feed_code}")
-            doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        # Add company name, feed name, and feed code
+        doc.add_heading(f"{company_name} - Feed Analysis Report", level=1)
+        doc.add_paragraph(f"Feed Name: {feed_name}")
+        doc.add_paragraph(f"Feed Code: {feed_code}")
+        doc.add_paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-            # Add a table for the report data
-            if report_data:
-                doc.add_heading("Report Table", level=2)
-                table = doc.add_table(rows=1, cols=len(report_data[0].keys()))
-                hdr_cells = table.rows[0].cells
-                for i, key in enumerate(report_data[0].keys()):
-                    hdr_cells[i].text = key
-                for row in report_data:
-                    row_cells = table.add_row().cells
-                    for i, key in enumerate(row.keys()):
-                        row_cells[i].text = str(row[key])
+        # Add a table for the report data
+        if report_data:
+            doc.add_heading("Report Table", level=2)
+            table = doc.add_table(rows=1, cols=len(report_data[0].keys()))
+            hdr_cells = table.rows[0].cells
+            for i, key in enumerate(report_data[0].keys()):
+                hdr_cells[i].text = key
+            for row in report_data:
+                row_cells = table.add_row().cells
+                for i, key in enumerate(row.keys()):
+                    row_cells[i].text = str(row[key])
 
-            # Add a table for the nutrient composition data
-            if nutrient_data:
-                doc.add_heading("Nutrient Composition", level=2)
-                table = doc.add_table(rows=1, cols=len(nutrient_data[0].keys()))
-                hdr_cells = table.rows[0].cells
-                for i, key in enumerate(nutrient_data[0].keys()):
-                    hdr_cells[i].text = key
-                for row in nutrient_data:
-                    row_cells = table.add_row().cells
-                    for i, key in enumerate(row.keys()):
-                        row_cells[i].text = str(row[key])
+        # Add a table for the nutrient composition data
+        if nutrient_data:
+            doc.add_heading("Nutrient Composition", level=2)
+            table = doc.add_table(rows=1, cols=len(nutrient_data[0].keys()))
+            hdr_cells = table.rows[0].cells
+            for i, key in enumerate(nutrient_data[0].keys()):
+                hdr_cells[i].text = key
+            for row in nutrient_data:
+                row_cells = table.add_row().cells
+                for i, key in enumerate(row.keys()):
+                    row_cells[i].text = str(row[key])
 
-            # Save the document to a temporary file
-            file_name = "Feed Analysis Report.docx"
-            doc.save(file_name)
+        # Save the document to a temporary file
+        file_name = "Feed Analysis Report.docx"
+        doc.save(file_name)
 
-            try:
-                # Open a connection to the database
-                with sqlite3.connect(DB_PATH) as conn:
-                    cursor = conn.cursor()
+        try:
+            # Open a connection to the database
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
             
-                    # Begin a transaction for performance and atomicity
-                    conn.execute("BEGIN TRANSACTION")
+                # Create tables if they don't exist
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS feeds (
+                        feed_code TEXT PRIMARY KEY,
+                        feed_name TEXT,
+                        report_date TEXT
+                    );
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS ingredients (
+                        ingredient_name TEXT PRIMARY KEY
+                    );
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS feed_ingredients (
+                        feed_code TEXT,
+                        ingredient_name TEXT,
+                        price_per_kg REAL,
+                        quantity REAL,
+                        quantity_price REAL,
+                        amount REAL,
+                        FOREIGN KEY(feed_code) REFERENCES feeds(feed_code),
+                        FOREIGN KEY(ingredient_name) REFERENCES ingredients(ingredient_name)
+                    );
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS nutrient_composition (
+                        feed_code TEXT PRIMARY KEY,
+                        cp REAL, fat REAL, fibre REAL, cal REAL, phos_total REAL,
+                        avail_phos REAL, me_poult REAL, me_swine REAL, meth REAL, cystine REAL,
+                        meth_cyst REAL, lysine REAL, tryptophan REAL, threonine REAL,
+                        vit_a_iu_gm REAL, vit_e_iu_gm REAL, riboflavin REAL, panto_acid REAL,
+                        choline REAL, niacin REAL, sodium REAL, potassium REAL, magnesium REAL,
+                        sulphur REAL, manganese REAL, iron REAL, copper REAL, zinc REAL,
+                        selenium REAL, iodine REAL
+                    );
+                """)
+
+                # Insert feed data
+                cursor.execute("""
+                    INSERT OR REPLACE INTO feeds (feed_code, feed_name, report_date)
+                    VALUES (?, ?, ?)
+                """, (feed_code, feed_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             
-                    # Insert feed data
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO feeds (feed_code, feed_name, report_date)
-                        VALUES (?, ?, ?)
-                    """, (feed_code, feed_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-            
-                    # Insert report data
-                    if report_data:
-                        for row in report_data:
-                            # Validate data before processing
-                            ingredient_name = row.get("INGREDIENT")
-                            if not ingredient_name:
-                                print("Warning: Missing ingredient name in row:", row)
-                                continue
-            
-                            price_per_kg = row.get("PRICE/KG", 0)
-                            quantity = row.get("QUANTITY", 0)
-                            quantity_price = row.get("QUANTITY PRICE", 0)
-                            amount = row.get("AMOUNT", 0)
-            
-                            # Ensure the ingredient exists
-                            cursor.execute("""
-                                INSERT OR IGNORE INTO ingredients (ingredient_name)
-                                VALUES (?)
-                            """, (ingredient_name,))
-            
-                            # Insert into feed_ingredients table
-                            cursor.execute("""
-                                INSERT INTO feed_ingredients (feed_code, ingredient_name, price_per_kg, quantity, quantity_price, amount)
-                                VALUES (?, ?, ?, ?, ?, ?)
-                            """, (feed_code, ingredient_name, price_per_kg, quantity, quantity_price, amount))
-            
-                    # Insert nutrient composition data
-                    if nutrient_data:
-                        nutrient_dict = {item["Nutrient"]: item["Actual"] for item in nutrient_data}
+                # Insert report data
+                if report_data:
+                    for row in report_data:
+                        ingredient_name = row.get("INGREDIENT")
+                        if not ingredient_name:
+                            print("Warning: Missing ingredient name in row:", row)
+                            continue
+
+                        price_per_kg = row.get("PRICE/KG", 0)
+                        quantity = row.get("QUANTITY", 0)
+                        quantity_price = row.get("QUANTITY PRICE", 0)
+                        amount = row.get("AMOUNT", 0)
+
+                        # Ensure the ingredient exists
                         cursor.execute("""
-                            INSERT OR REPLACE INTO nutrient_composition (
-                                feed_code, cp, fat, fibre, cal, phos_total, avail_phos, me_poult, me_swine, meth, cystine,
-                                meth_cyst, lysine, tryptophan, threonine, vit_a_iu_gm, vit_e_iu_gm, riboflavin, panto_acid,
-                                choline, niacin, sodium, potassium, magnesium, sulphur, manganese, iron, copper, zinc,
-                                selenium, iodine
-                            )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            feed_code, nutrient_dict.get("CP", 0), nutrient_dict.get("FAT", 0), nutrient_dict.get("FIBRE", 0),
-                            nutrient_dict.get("CAL", 0), nutrient_dict.get("PHOS.TOTAL", 0), nutrient_dict.get("AVAIL PHOS", 0),
-                            nutrient_dict.get("ME/POULT", 0), nutrient_dict.get("ME/SWINE", 0), nutrient_dict.get("METH", 0),
-                            nutrient_dict.get("CYSTINE", 0), nutrient_dict.get("METH+CYST", 0), nutrient_dict.get("LYSINE", 0),
-                            nutrient_dict.get("TRYPTOPHAN", 0), nutrient_dict.get("THREONINE", 0), nutrient_dict.get("VIT A IU/GM", 0),
-                            nutrient_dict.get("VIT E IU/GM", 0), nutrient_dict.get("RIBOFLAVIN", 0), nutrient_dict.get("PANTO ACID", 0),
-                            nutrient_dict.get("CHOLINE", 0), nutrient_dict.get("NIACIN", 0), nutrient_dict.get("SODIUM", 0),
-                            nutrient_dict.get("POTASSIUM", 0), nutrient_dict.get("MAGNESIUM", 0), nutrient_dict.get("SULPHUR", 0),
-                            nutrient_dict.get("MANGANESE", 0), nutrient_dict.get("IRON", 0), nutrient_dict.get("COPPER", 0),
-                            nutrient_dict.get("ZINC", 0), nutrient_dict.get("SELENIUM", 0), nutrient_dict.get("IODINE", 0)
-                        ))
-            
-                    # Commit the transaction
-                    conn.commit()
-            
-            except sqlite3.Error as e:
-                # Log SQLite errors
-                print(f"SQLite error occurred: {e}")
-                # Optionally rollback to avoid partial updates
-                if conn:
-                    conn.rollback()
-            except Exception as e:
-                # Catch all other exceptions
-                print(f"An unexpected error occurred: {e}")
-            finally:
-                if conn:
-                    # Close the connection
-                    conn.close()
+                            INSERT OR IGNORE INTO ingredients (ingredient_name)
+                            VALUES (?)
+                        """, (ingredient_name,))
+
+                        # Insert into feed_ingredients table
+                        cursor.execute("""
+                            INSERT INTO feed_ingredients (feed_code, ingredient_name, price_per_kg, quantity, quantity_price, amount)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (feed_code, ingredient_name, price_per_kg, quantity, quantity_price, amount))
+
+                # Insert nutrient composition data
+                if nutrient_data:
+                    nutrient_dict = {item["Nutrient"]: item["Actual"] for item in nutrient_data}
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO nutrient_composition (
+                            feed_code, cp, fat, fibre, cal, phos_total, avail_phos, me_poult, me_swine, meth, cystine,
+                            meth_cyst, lysine, tryptophan, threonine, vit_a_iu_gm, vit_e_iu_gm, riboflavin, panto_acid,
+                            choline, niacin, sodium, potassium, magnesium, sulphur, manganese, iron, copper, zinc,
+                            selenium, iodine
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        feed_code, nutrient_dict.get("CP", 0), nutrient_dict.get("FAT", 0), nutrient_dict.get("FIBRE", 0),
+                        nutrient_dict.get("CAL", 0), nutrient_dict.get("PHOS.TOTAL", 0), nutrient_dict.get("AVAIL PHOS", 0),
+                        nutrient_dict.get("ME/POULT", 0), nutrient_dict.get("ME/SWINE", 0), nutrient_dict.get("METH", 0),
+                        nutrient_dict.get("CYSTINE", 0), nutrient_dict.get("METH+CYST", 0), nutrient_dict.get("LYSINE", 0),
+                        nutrient_dict.get("TRYPTOPHAN", 0), nutrient_dict.get("THREONINE", 0), nutrient_dict.get("VIT A IU/GM", 0),
+                        nutrient_dict.get("VIT E IU/GM", 0), nutrient_dict.get("RIBOFLAVIN", 0), nutrient_dict.get("PANTO ACID", 0),
+                        nutrient_dict.get("CHOLINE", 0), nutrient_dict.get("NIACIN", 0), nutrient_dict.get("SODIUM", 0),
+                        nutrient_dict.get("POTASSIUM", 0), nutrient_dict.get("MAGNESIUM", 0), nutrient_dict.get("SULPHUR", 0),
+                        nutrient_dict.get("MANGANESE", 0), nutrient_dict.get("IRON", 0), nutrient_dict.get("COPPER", 0),
+                        nutrient_dict.get("ZINC", 0), nutrient_dict.get("SELENIUM", 0), nutrient_dict.get("IODINE", 0)
+                    ))
+
+                # Commit the transaction
+                conn.commit()
+
+        except sqlite3.Error as e:
+            print(f"SQLite error occurred: {e}")
+            if conn:
+                conn.rollback()
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+        finally:
+            if conn:
+                conn.close()
 
 
 
