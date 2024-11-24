@@ -660,20 +660,20 @@ def create_dash_application(flask_app):
                                 VALUES (?, ?, ?)
                             """, (feed_code, feed_name, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             
-                     # Insert report data
-                     if report_data:
-                         for row in report_data:
-                             ingredient_name = row.get("INGREDIENT")
-                             if not ingredient_name:
+                    # Insert report data
+                    if report_data:
+                        for row in report_data:
+                            ingredient_name = row.get("INGREDIENT")
+                            if not ingredient_name:
                                 print("Warning: Missing ingredient name in row:", row)
                                 continue
 
-                             price_per_kg = row.get("PRICE/KG", 0)
-                             quantity = row.get("QUANTITY", 0)
-                             quantity_price = row.get("QUANTITY PRICE", 0)
-                             amount = row.get("AMOUNT", 0)
+                            price_per_kg = row.get("PRICE/KG", 0)
+                            quantity = row.get("QUANTITY", 0)
+                            quantity_price = row.get("QUANTITY PRICE", 0)
+                            amount = row.get("AMOUNT", 0)
 
-                             # Ensure the ingredient exists
+                            # Ensure the ingredient exists
                             cursor.execute("""
                             INSERT OR IGNORE INTO ingredients (ingredient_name)
                             VALUES (?)
